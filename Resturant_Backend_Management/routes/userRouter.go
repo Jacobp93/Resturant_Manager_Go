@@ -1,6 +1,8 @@
 package routes
 
 import (
+	controller "RESTURANT_MANAGER_GO/Resturant_Backend_Management/controllers"
+
 	"github.com/gin-gonic/gin"
 )
 

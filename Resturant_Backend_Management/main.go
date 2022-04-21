@@ -1,9 +1,9 @@
 package main
 
 import (
-	"Resturant_Manager_Go/database"
-	"Resturant_Manager_Go/middleware"
-	"Resturant_Manager_Go/routes"
+	"Resturant_Manager_Go/Resturant_Backend_Management/database"
+	"Resturant_Manager_Go/Resturant_Backend_Management/middleware"
+	"Resturant_Manager_Go/Resturant_Backend_Management/routes"
 	"os"
 
 	"github.com/gin-gonic/gin"
