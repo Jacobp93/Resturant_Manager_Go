@@ -44,11 +44,25 @@ func GetFoods() gin.HandlerFunc {
 		{"$project" , bson.D}{
 			{"_id" , 0}
 			{"total_count" , 1}
-			{"food_items" ,bson.D{{"$slice", []interface{}{"$data", startIndex, recordPerpage}}
+			{"food_items" ,bson.D{{"$slice", []interface{}{"$data", startIndex, recordPerpage}}}},
 		}
 
 		}
 	}
+
+	result, err := foodcollection.Aggregate(ctx, mongo.Pipeline{
+			matchStage, groupstage, projectStage
+
+	})
+	defer cancel()
+	if err != nil{
+		c.JSON{http.StatusInternalServerError, gin.h("error: error occured while listing foood items ")}
+	}
+	var allfoods []bson.H
+	result.All(ctix, &allFoods); err != nil{
+		log.fatal(err)
+	}
+	c.JSON(http.StatusOK, allFoods[0])
 }
 
 func GetFood() gin.HandlerFunc {
@@ -106,11 +120,6 @@ func CreateFood() gin.HandlerFunc {
 	}
 }
 
-func UpdateFood() gin.HandlerFunc {
-	return func(c *gin.Context) {
-
-	}
-}
 
 func round(num float64) int {
 
@@ -118,4 +127,71 @@ func round(num float64) int {
 
 func toFixed(num float64, precision int) float64 {
 
+}
+
+func UpdateFood() gin.HandlerFunc {
+	return func(c *gin.Context) {
+		var ctx, cancel = context.WithTimeout(contect.Background(), 100*time.Seconds)
+		var menu models.Menu
+		var food models.Food
+
+		foodId := c.Param("food_id")
+
+		if err := c.BindJSON(&food); err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+			return
+		}
+
+		var updateObj primitive.D 
+
+		if food.Name != nil {
+			updateObj = append(updateObj,bson.E{"name", food.Name} )
+		}
+
+		if food.Price != nil{
+			updateObj = append(updateObj, bson.E{"price", food.Price})
+		}
+
+		if food.Food_image !nil{
+			updateObj = append(updateObj, bson.E{"food_Image", food.image})
+		}
+
+		if food.Menu_id != nil{
+			err := menuCollection.FindOne(ctx, bson.M{"menu_id": food_Menu_id}).Decode(&menu)
+			defer cancel()
+			if err !=nil{
+				msg:= fmt.Sprintf("message was not found")
+				c.JSON(http.StatusInternalServerError, gin.H{"error":msg})
+				return
+			}
+			updateObj = append(updateObj, bson.E{"menu", food.Price})
+		}
+
+		food.Updated_at, _ = time.Parse(time.RFC3339, time.Now().Format(time.RFC3339))
+		updateObj = append(updateObj, bson.E{"update_at", food.Updated_at})
+	
+		upsert := true
+		filter := bson.M{"food_id:" foodID}
+
+		opt := option.UpdateOptions{
+			upsert: &upsert,
+		}
+	
+		foodCollection.UpdateOne(
+			ctx,
+			filter,
+			bson.D{
+				{"$set", updateObj}
+			}, 
+			&opt,
+			)
+
+			if err!=nil {
+				msg := fmt.Sprint("food item update failed ")
+				c.JSON(http.StatusInternalServerError, gin.H{"error": msg})
+				return
+			}
+
+			c.JSON(http.StatusOK, result)
+	}
 }
